@@ -35,7 +35,8 @@ dobaos> help
 
 :: General:
 ::> reset
-::  help
+::  version
+::> help
 dobaos> get 1
 23:00:04:266,    id: 1, value: 23, raw: [12,126]
 dobaos> get 1 101 102

@@ -179,6 +179,8 @@ const processCmd = cmd => {
       return { command: "state" };
     case "reset":
       return { command: "reset" };
+    case "version":
+      return { command: "version" };
     case "progmode":
       return processProgMode(cmdArgs);
     case "description":

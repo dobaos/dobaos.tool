@@ -179,13 +179,17 @@ const App = params => {
           res = await dobaos.reset();
           console_out(`reset request sent`);
           break;
+        case "version":
+          version = await dobaos.getVersion();
+          console_out(`dobaos daemon version is ${version}`);
+          break;
         case "progmode":
           if (args !== "?") {
             await dobaos.setProgrammingMode(args);
           }
           // setTimeout(async _ => {
           res = await dobaos.getProgrammingMode();
-          console_out(`BAOS module in programming mode: ${JSON.stringify(res.value[0])}`);
+          console_out(`BAOS module in programming mode: ${res}`);
           // }, 100);
           break;
         case "help":
