@@ -1,0 +1,20 @@
+{
+  "name": "dobaos.tool",
+  "version": "0.4.2",
+  "description": "REPL tool for dobaos",
+  "main": "index.js",
+  "bin": {
+    "dobaos-tool": "./bin/dobaos-tool.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Vladimir Shabunin",
+  "license": "Beerware",
+  "dependencies": {
+    "colors": "^1.3.2",
+    "commander": "^2.19.0",
+    "dobaos.js": "^0.4.2",
+    "ebnf": "^1.6.3"
+  }
+}
