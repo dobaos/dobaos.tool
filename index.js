@@ -46,9 +46,9 @@ const App = params => {
   dobaos.init();
 
   let commandlist = [];
-  commandlist.push("set", "get", "read", "description");
-  commandlist.push("watch", "unwatch");
-  commandlist.push("progmode");
+  commandlist.push("set", "put", "raw", "get", "stored", "read", "description");
+  commandlist.push("name", "unname", "watch", "unwatch", "regex");
+  commandlist.push("serveritems", "progmode");
   commandlist.push("version", "reset", "help");
   function completer(line) {
     const hits = commandlist.filter(c => c.startsWith(line));
@@ -74,8 +74,12 @@ const App = params => {
     return `${hours}:${minutes}:${seconds}:${milliseconds}`;
   };
 
-  const formatDatapointValue = data => {
-    const strValue = `${formatDate(new Date())},    id: ${data.id}, value: ${data.value}, raw: [${data.raw}]`;
+  const formatDatapointValue = d => {
+    let id = d.id;
+    if (typeof d.name !== "undefined") {
+      id += "-" + d.name;
+    }
+    const strValue = `${formatDate(new Date())},    id: ${d.id}, value: ${d.value}, raw: [${d.raw}]`;
 
     // now color it
     const datapointColor = config.watch[data.id.toString()] || "default";
@@ -100,6 +104,9 @@ const App = params => {
 
   const formatDatapointDescription = t => {
     let res = `#${t.id}: `;
+    if (typeof t.name !== "undefined") {
+      res += "-" + t.name;
+    }
     res += `dpt = ${t.type}, prio: ${t.priority}, `;
     res += `flags: [`;
     res += t.communication ? "C" : "-";
@@ -193,23 +200,38 @@ const App = params => {
           // }, 100);
           break;
         case "help":
-          console_out(`:: To work with datapoints`);
-          console_out(`::  set ( 1: true | [2: "hello", 3: 42] )`);
-          console_out(`::> get ( 1 2 3 | [1, 2, 3] )`);
-          console_out(`::  read ( 1 2 3 | [1, 2, 3] )`);
-          console_out(`::> description ( * | 1 2 3 | [1, 2, 3] )`);
+          console_out(`...BAOS services: `);
+          console_out(`....Datapoints: `);
+          console_out(`     description *`);
+          console_out(`     description 1 2 3`);
+          console_out(`     get 1 2 3`);
+          console_out(`     read 1 2 3`);
+          console_out(`     set  1: true `);
+          console_out(`     name 1: lights `);
+          console_out(`     get lights`);
+          console_out(`     read lights`);
+          console_out(`     set  lights: true`);
+          console_out(`     set  [lights: true, 2: false] `);
+          console_out(`     set  10: {"xxx": 42}`);
+          console_out(`     put  1: true `);
+          console_out(`     raw  2: 0xffddcc `);
+          console_out(`     raw  3: [1] `);
+          console_out(`     raw  3: "AQ==" `);
+          console_out(`     raw  2: [1, 2, 3] `);
+          console_out(`....Service`);
+          console_out(`     serveritems`);
+          console_out(`     progmode ?`);
+          console_out(`     progmode 1/0`);
+          console_out(`     progmode true/false`);
+          console_out(`....For monitoring`);
+          console_out(`     watch ( 1: red | [1: red, 2: green, 3: underline, 4: hide, 5: hidden] ) `);
+          console_out(`     unwatch ( 1 2 3 | [1, 2, 3] )`);
+          console_out(`     regex /*/`);
           console_out(` `);
-          console_out(`:: Helpful in bus monitoring:`);
-          console_out(`::> watch ( 1: red | [1: red, 2: green, 3: underline, 4: hide, 5: hidden] ) `);
-          console_out(`::  unwatch ( 1 2 3 | [1, 2, 3] )`);
-          console_out(` `);
-          console_out(`:: BAOS services: `);
-          console_out(`::> progmode ( ? | true/false/1/0 ) `);
-          console_out(` `);
-          console_out(`:: General: `);
-          console_out(`::> reset `);
-          console_out(`::  version `);
-          console_out(`::> help `);
+          console_out(`...Service: `);
+          console_out(`    reset `);
+          console_out(`    version `);
+          console_out(`    help `);
           break;
         default:
           break;
@@ -221,10 +243,14 @@ const App = params => {
 
   rl.on("line", line => {
     rl.prompt(true);
+    if (line.trim() === "") return;
     try {
-      processParsedCmd(parseCmd(line));
+      let parsed = parseCmd(line.trim());
+      if (!parsed) { throw new Error("Command is not recognized"); }
+      console_out(JSON.stringify(parsed));
+      //processParsedCmd(parsed);
     } catch (e) {
-      console_out(e.message);
+      console_out(e);
     }
   }).on("close", () => {
     configFile.write(config);

@@ -1,7 +1,12 @@
-command ::= (set|get|stored|read|description|getbyte|watch|unwatch|ping|state|reset|version|getitem|progmode|help) WS*
+command ::= (baos_cmd | service_cmd | monitor_cmd)
+baos_cmd ::= (description | get | stored | read | set | put | raw | serveritems | progmode)
+service_cmd ::= (name | unname | reset | version | help)
+monitor_cmd ::= (watch | unwatch | regex)
 
 BEGIN_ARRAY          ::= WS* #x5B WS*  /* [ left square bracket */
 END_ARRAY            ::= WS* #x5D WS*  /* ] right square bracket */
+BEGIN_OBJECT         ::= WS* #x7B WS*  /* { left curly bracket */
+END_OBJECT           ::= WS* #x7D WS*  /* } right curly bracket */
 
 COMMA      ::= WS* #x2C WS*  /* , comma */
 COLON          ::= WS* ":" WS*
@@ -10,42 +15,56 @@ Question ::= #x3F
 
 WS          ::= [#x20#x09#x0A#x0D]+
 EOL         ::= [#x0A#x0D]+
-uint         ::= [0-9]*
+
+UInt         ::= [0-9]*
+UIntArray  ::= BEGIN_ARRAY (UInt WS* (COMMA UInt)*)? END_ARRAY
 Number      ::= "-"? ("0" | [1-9] [0-9]*) ("." [0-9]+)? (("e" | "E") ( "-" | "+" )? ("0" | [1-9] [0-9]*))?
 String      ::= '"' [^"]* '"' | "'" [^']* "'"
+Regex      ::= "/"  [^/]* "/"
 Null        ::= "null"
 Bool        ::= "true" | "false"
+HexValue             ::= "0x" ([a-fA-F0-9])*
 
 Identifier  ::= ('$$' | '$' | [A-Za-z_])([A-Za-z0-9_]|'.')*
 
-Value ::= Number | String | Null | Bool
+Object               ::= BEGIN_OBJECT (Member (COMMA Member)*)? END_OBJECT
+Member               ::= (String | Identifier) COLON Value
 
-DatapointValue ::= uint COLON Value
+Value ::= Number | String | Null | Bool | Object
+RawValue ::= String | HexValue | UIntArray
+
+DatapointId ::= ( Asterisk | UInt | Identifier | String )
+DatapointValue ::= DatapointId COLON Value
 DatapointValueArray  ::= BEGIN_ARRAY (DatapointValue WS* (COMMA DatapointValue)*)? END_ARRAY
 
-UIntArray ::= BEGIN_ARRAY (uint WS* (COMMA uint)*) END_ARRAY
-UIntList ::= (uint WS*)*
+DatapointValueRaw ::= DatapointId COLON RawValue
+DatapointValueRawArray  ::= BEGIN_ARRAY (DatapointValueRaw WS* (COMMA DatapointValueRaw)*)? END_ARRAY
 
-IdentifierArray ::= BEGIN_ARRAY (Identifier WS* (COMMA Identifier)*) END_ARRAY
-IdentifierList ::= (Identifier WS*)*
+DatapointIdArray ::= BEGIN_ARRAY (DatapointId WS* (COMMA DatapointId)*) END_ARRAY
+DatapointIdList ::= (DatapointId WS*)*
 
-ItemArgs ::= ( Asterisk | IdentifierArray | IdentifierList )
- 
-WatchCmdArg ::= ( uint COLON ( String | Identifier ))*
+WatchCmdArg ::= ( DatapointId COLON ( String | Identifier ))*
 WatchCmdArgArray ::= BEGIN_ARRAY ( WatchCmdArg WS* (COMMA WatchCmdArg)*)? END_ARRAY
 
+DatapointNameArg ::= (UInt COLON ( String | Identifier | Question ))*
+DatapointNameArgArray ::= BEGIN_ARRAY ( DatapointNameArg WS* (COMMA DatapointNameArg)*)? END_ARRAY
+
+description ::= "description" WS* ( Asterisk | ( DatapointIdList | DatapointIdArray ))
+get ::= "get" WS* ( DatapointIdList | DatapointIdArray )
+stored ::= "stored" WS* ( DatapointIdList | DatapointIdArray )
+read ::= "read" WS* ( DatapointIdList | DatapointIdArray )
 set ::= "set" WS* ( DatapointValue | DatapointValueArray )
-get ::= "get" WS* ( UIntList | UIntArray )
-stored ::= "stored" WS* ( UIntList | UIntArray )
-read ::= "read" WS* ( UIntList | UIntArray )
-description ::= "description" WS* ( Asterisk | ( UIntList | UIntArray ))
-getbyte ::= "getbyte" WS* ( UIntList | UIntArray )
-watch ::= "watch" WS* ( WatchCmdArg | WatchCmdArgArray )
-unwatch ::= "unwatch" WS* ( UIntList | UIntArray )
-ping ::= "ping" WS*
-state ::= "state" WS*
+raw ::= "raw" WS* ( DatapointValueRaw | DatapointValueRawArray )
+put ::= "put" WS* ( DatapointValue | DatapointValueArray )
+serveritems ::= "serveritems" WS*
+progmode ::= "progmode" WS* ( Question | Bool | Number )
+
+name ::= "name" WS* ( DatapointNameArg | DatapointNameArgArray )
+unname ::= "unname" WS* ( DatapointIdList | DatapointIdArray )
 reset ::= "reset" WS*
 version ::= "version" WS*
-getitem ::= "getitem" WS* ( Asterisk | UIntList | UIntArray )
-progmode ::= "progmode" WS* ( Question | Value )
 help ::= "help" WS*
+
+watch ::= "watch" WS* ( WatchCmdArg | WatchCmdArgArray )
+unwatch ::= "unwatch" WS* ( DatapointIdList | DatapointIdArray )
+regex ::= "regex" WS* Regex WS* (Regex)*
