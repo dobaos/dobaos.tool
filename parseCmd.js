@@ -146,7 +146,7 @@ const processRawValue = cmdArgs => {
   const valueObj = cmdArgs.find(findValue).children[0];
   const value = processRawValueObject(valueObj);
 
-  return { id: id, value: value };
+  return { id: id, raw: value };
 };
 const processRawValueArray = cmdArgs => {
   return cmdArgs.map(t => {
@@ -283,20 +283,6 @@ const processSetNameCmd = cmdArgs => {
   return res;
 };
 
-const processRegexCmd = (cmdType, cmdArgs) => {
-  let res = {
-    command: cmdType,
-    args: []
-  };
-  if (!Array.isArray(cmdArgs.children)) return;
-
-  cmdArgs.children.forEach(r => {
-    if (r.type === "Regex") res.args.push(r.text.slice(1, -1));
-  });
-
-  return res;
-};
-
 const processCmd = cmd => {
   let cmdType = cmd.type;
   let cmdArgs;
@@ -347,9 +333,6 @@ const processCmd = cmd => {
       if (cmd.children.length !== 1) return;
       cmdArgs = cmd.children[0];
       return processIdListCmd(cmdType, cmdArgs);
-    case "regex":
-      cmdArgs = cmd;
-      return processRegexCmd(cmdType, cmdArgs);
     case "progmode":
       if (cmd.children.length !== 1) return;
       cmdArgs = cmd.children[0];

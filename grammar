@@ -1,7 +1,7 @@
 command ::= (baos_cmd | service_cmd | monitor_cmd)
 baos_cmd ::= (description | get | stored | read | set | put | raw | serveritems | progmode)
 service_cmd ::= (name | unname | reset | version | help)
-monitor_cmd ::= (watch | unwatch | regex)
+monitor_cmd ::= (watch | unwatch )
 
 BEGIN_ARRAY          ::= WS* #x5B WS*  /* [ left square bracket */
 END_ARRAY            ::= WS* #x5D WS*  /* ] right square bracket */
@@ -20,7 +20,6 @@ UInt         ::= [0-9]*
 UIntArray  ::= BEGIN_ARRAY (UInt WS* (COMMA UInt)*)? END_ARRAY
 Number      ::= "-"? ("0" | [1-9] [0-9]*) ("." [0-9]+)? (("e" | "E") ( "-" | "+" )? ("0" | [1-9] [0-9]*))?
 String      ::= '"' [^"]* '"' | "'" [^']* "'"
-Regex      ::= "/"  [^/]* "/"
 Null        ::= "null"
 Bool        ::= "true" | "false"
 HexValue             ::= "0x" ([a-fA-F0-9])*
@@ -67,4 +66,3 @@ help ::= "help" WS*
 
 watch ::= "watch" WS* ( WatchCmdArg | WatchCmdArgArray )
 unwatch ::= "unwatch" WS* ( DatapointIdList | DatapointIdArray )
-regex ::= "regex" WS* Regex WS* (Regex)*

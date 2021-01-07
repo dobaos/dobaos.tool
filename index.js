@@ -47,7 +47,7 @@ const App = params => {
 
   let commandlist = [];
   commandlist.push("set", "put", "raw", "get", "stored", "read", "description");
-  commandlist.push("name", "unname", "watch", "unwatch", "regex");
+  commandlist.push("name", "unname", "watch", "unwatch");
   commandlist.push("serveritems", "progmode");
   commandlist.push("version", "reset", "help");
   function completer(line) {
@@ -58,7 +58,7 @@ const App = params => {
   }
 
   console.log("hello, friend");
-  console.log(`connecting to ${_params.redis}`);
+  console.log(`connecting to ${_params.redis ? _params.redis: "localhost"}`);
 
   const formatDate = date => {
     let hours = date.getHours();
@@ -77,12 +77,18 @@ const App = params => {
   const formatDatapointValue = d => {
     let id = d.id;
     if (typeof d.name !== "undefined") {
-      id += "-" + d.name;
+      id += " <" + d.name + ">";
     }
     const strValue = `${formatDate(new Date())},    id: ${d.id}, value: ${d.value}, raw: [${d.raw}]`;
 
     // now color it
-    const datapointColor = config.watch[data.id.toString()] || "default";
+    const datapointColor = "default";
+    if (typeof config.watch[d.id.toString()] !== "undefined") {
+      datapointColor = config.watch[d.id.toString()];
+    } else if (typeof d.name !== "undefined" &&
+      typeof config.watch[d.name.toString()] !== "undefined") {
+
+    }
     if (typeof colors[datapointColor] === "function") {
       return colors[datapointColor](strValue);
     }
@@ -103,11 +109,13 @@ const App = params => {
   };
 
   const formatDatapointDescription = t => {
-    let res = `#${t.id}: `;
+    let res = `#${t.id} `;
+    let name = "---";
     if (typeof t.name !== "undefined") {
-      res += "-" + t.name;
+      name = t.name;
     }
-    res += `dpt = ${t.type}, prio: ${t.priority}, `;
+    res += `<${name}>, `;
+    res += `dpt_${t.type}, prio: ${t.priority}, `;
     res += `flags: [`;
     res += t.communication ? "C" : "-";
     res += t.read ? "R" : "-";
@@ -131,10 +139,14 @@ const App = params => {
     console_out(formatCastedDatapointValue(payload));
   });
 
-  dobaos.on("server item", payload => {
+  let processServerItems = payload => {
+    if (Array.isArray(payload)) {
+      return payload.forEach(processServerItems);
+    }
     let { id, value, raw } = payload;
-    console_out(`Server item indication: id = ${id}, value = ${value}, raw = ${raw}`);
-  });
+    console_out(`server item id = ${id}, value = ${value}, raw = ${raw}`);
+  }
+  dobaos.on("server item", processServerItems);
 
   const processParsedCmd = async payload => {
     try {
@@ -144,8 +156,24 @@ const App = params => {
         case "set":
           await dobaos.setValue(args);
           break;
+        case "raw":
+          await dobaos.setValue(args);
+          break;
+        case "put":
+          await dobaos.putValue(args);
+          break;
         case "get":
           res = await dobaos.getValue(args);
+          if (Array.isArray(res)) {
+            res.forEach(t => {
+              console_out(formatDatapointValue(t));
+            });
+          } else {
+            console_out(formatDatapointValue(res));
+          }
+          break;
+        case "stored":
+          res = await dobaos.getStored(args);
           if (Array.isArray(res)) {
             res.forEach(t => {
               console_out(formatDatapointValue(t));
@@ -167,12 +195,35 @@ const App = params => {
             .map(formatDatapointDescription)
             .forEach(console_out);
           break;
+        case "serveritems":
+          res = await dobaos.getServerItems();
+          processServerItems(res);
+          break;
         case "watch":
           args.forEach(a => {
             let { id, color } = a;
             config.watch[id.toString()] = color;
             console_out(`datapoint ${id} value is now in ${color}`);
           });
+          break;
+        case "name":
+          args.forEach(async a => {
+            let { id, question } = a;
+            if (question) {
+              res = await dobaos.getName(id);
+              console_out(`${id}: ${res}`);
+            } else {
+              let name = a.name;
+              dobaos.setName(id, name);
+              console_out(`${id}: ${name}`);
+            }
+          });
+          break;
+        case "unname":
+          args.forEach(async name => {
+            dobaos.delName(name);
+          });
+          console_out("ok");
           break;
         case "unwatch":
           args.forEach(id => {
@@ -184,7 +235,7 @@ const App = params => {
           break;
         case "reset":
           res = await dobaos.reset();
-          console_out(`reset request sent`);
+          console_out(`reset request result: ${res}`);
           break;
         case "version":
           version = await dobaos.getVersion();
@@ -226,7 +277,6 @@ const App = params => {
           console_out(`....For monitoring`);
           console_out(`     watch ( 1: red | [1: red, 2: green, 3: underline, 4: hide, 5: hidden] ) `);
           console_out(`     unwatch ( 1 2 3 | [1, 2, 3] )`);
-          console_out(`     regex /*/`);
           console_out(` `);
           console_out(`...Service: `);
           console_out(`    reset `);
@@ -238,6 +288,7 @@ const App = params => {
       }
     } catch (e) {
       console_out(e.message);
+      console.log(e);
     }
   };
 
@@ -247,8 +298,8 @@ const App = params => {
     try {
       let parsed = parseCmd(line.trim());
       if (!parsed) { throw new Error("Command is not recognized"); }
-      console_out(JSON.stringify(parsed));
-      //processParsedCmd(parsed);
+      //console_out(JSON.stringify(parsed));
+      processParsedCmd(parsed);
     } catch (e) {
       console_out(e);
     }
