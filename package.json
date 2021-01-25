@@ -1,6 +1,6 @@
 {
   "name": "dobaos.tool",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "REPL tool for dobaos",
   "main": "index.js",
   "bin": {
