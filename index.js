@@ -79,15 +79,16 @@ const App = params => {
     if (typeof d.name !== "undefined") {
       id += " <" + d.name + ">";
     }
-    const strValue = `${formatDate(new Date())},    id: ${d.id}, value: ${d.value}, raw: [${d.raw}]`;
+    let hex = Buffer.from(d.raw, "base64").toString("hex");
+    const strValue = `${formatDate(new Date())},    id: ${id}, value: ${d.value}, raw: [${d.raw}] [0x${hex}]`;
 
     // now color it
-    const datapointColor = "default";
+    let datapointColor = "default";
     if (typeof config.watch[d.id.toString()] !== "undefined") {
       datapointColor = config.watch[d.id.toString()];
-    } else if (typeof d.name !== "undefined" &&
-      typeof config.watch[d.name.toString()] !== "undefined") {
-
+    } else if (typeof d.name !== "undefined") {
+      if (typeof config.watch[d.name] !== "undefined")
+        datapointColor = config.watch[d.name];
     }
     if (typeof colors[datapointColor] === "function") {
       return colors[datapointColor](strValue);
